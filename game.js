@@ -380,7 +380,7 @@ class Ship {
     this.angle  = -Math.PI / 2;
     this.vx     = 0;
     this.vy     = 0;
-    this.radius = 12;
+    this.radius = SKINS[currentSkinIndex].id === 'big' ? 24 : 12;
     this.thrusting     = false;
     this.invincible    = 3;
     this.shootCooldown = 0;
@@ -687,14 +687,61 @@ const SKINS = [
       ctx.stroke();
       ctx.restore();
     }
+  },
+  {
+    id: 'big',
+    name: 'Gigante',
+    draw(ctx, ship) {
+      ctx.save();
+      ctx.scale(2, 2);
+      ctx.beginPath();
+      ctx.moveTo( 20,  0);
+      ctx.lineTo(-12, -9);
+      ctx.lineTo( -7,  0);
+      ctx.lineTo(-12,  9);
+      ctx.closePath();
+      ctx.stroke();
+      if (ship.thrusting && Math.random() > 0.35) {
+        ctx.beginPath();
+        ctx.moveTo(-8, -4);
+        ctx.lineTo(-8 - rand(6, 14), 0);
+        ctx.lineTo(-8,  4);
+        if (ship.speedBoostTimer > 0)
+          ctx.strokeStyle = 'rgba(0, 190, 255, 0.9)';
+        else if (ship.tripleShotTimer > 0)
+          ctx.strokeStyle = 'rgba(255, 180, 0, 0.9)';
+        else
+          ctx.strokeStyle = 'rgba(180, 0, 255, 0.85)';
+        ctx.stroke();
+      }
+      ctx.restore();
+    },
+    preview(ctx, x, y, s) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(s * 2, s * 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.strokeStyle = '#b400ff';
+      ctx.lineWidth = 1.5 / (s * 2);
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo( 20,  0);
+      ctx.lineTo(-12, -9);
+      ctx.lineTo( -7,  0);
+      ctx.lineTo(-12,  9);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 ];
 
-const SKIN_COLORS = ['#fff', '#0ff', '#ffd700', '#f44'];
+const SKIN_COLORS = ['#fff', '#0ff', '#ffd700', '#f44', '#b400ff'];
 
 let currentSkinIndex = 0;
 let menuSelection = 0;
 let menuStars = [];
+let scoreMultiplier = 1;
 
 function loadSkin() {
   const saved = localStorage.getItem('selectedSkin');
@@ -703,11 +750,13 @@ function loadSkin() {
     if (idx !== -1) currentSkinIndex = idx;
   }
   menuSelection = currentSkinIndex;
+  scoreMultiplier = SKINS[currentSkinIndex].id === 'big' ? 2 : 1;
 }
 
 function saveSkin() {
   currentSkinIndex = menuSelection;
   localStorage.setItem('selectedSkin', SKINS[currentSkinIndex].id);
+  scoreMultiplier = SKINS[currentSkinIndex].id === 'big' ? 2 : 1;
 }
 
 function initMenuStars() {
@@ -963,7 +1012,7 @@ function update(dt) {
       if (!a.dead && !b.dead && dist(b, a) < a.radius) {
         b.dead = true;
         a.dead = true;
-        score += POINTS[a.size];
+        score += POINTS[a.size] * scoreMultiplier;
         explode(a.x, a.y, a.size * 5);
         trySpawnSpeedBoost(a.x, a.y);
         trySpawnTripleShot(a.x, a.y);
@@ -981,7 +1030,7 @@ function update(dt) {
       if (!s.dead && !b.dead && dist(b, s) < s.radius) {
         b.dead = true;
         s.dead = true;
-        score += SHOOTING_STAR_POINTS;
+        score += SHOOTING_STAR_POINTS * scoreMultiplier;
         explode(s.x, s.y, 12);
       }
     }
@@ -993,7 +1042,7 @@ function update(dt) {
       if (dist(ship, a) < ship.radius + a.radius * 0.82) {
         if (ship.shieldTimer > 0) {
           a.dead = true;
-          score += Math.floor(POINTS[a.size] * 0.5);
+          score += Math.floor(POINTS[a.size] * 0.5 * scoreMultiplier);
           explode(a.x, a.y, a.size * 3);
           newAsteroids.push(...a.split());
         } else {
@@ -1011,7 +1060,7 @@ function update(dt) {
       if (!s.dead && dist(ship, s) < ship.radius + s.radius) {
         if (ship.shieldTimer > 0) {
           s.dead = true;
-          score += Math.floor(SHOOTING_STAR_POINTS * 0.5);
+          score += Math.floor(SHOOTING_STAR_POINTS * 0.5 * scoreMultiplier);
           explode(s.x, s.y, 8);
         } else {
           killShip();
