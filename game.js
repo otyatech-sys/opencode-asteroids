@@ -71,6 +71,14 @@ const SHOOTING_STAR_SPAWN_CHANCE = 0.10; // 10% probabilidad
 const SHOOTING_STAR_POINTS = 150;       // puntos al destruir
 const SHOOTING_STAR_MAX = 2;            // máximo simultáneos
 
+// ── Shield (escudo protector) ─────────────────────────────────────────────────
+const SHIELD_DURATION    = 7;     // segundos de duración
+const SHIELD_SPAWN_CHANCE = 0.18; // probabilidad al destruir asteroide
+const SHIELD_TTL         = 10;    // segundos antes de desaparecer si no se recoge
+const SHIELD_MAX         = 1;     // máximo simultáneos en pantalla
+const SHIELD_RADIUS      = 12;    // radio del power-up visual
+const SHIELD_COLOR       = [0, 255, 180]; // color verde/celeste del escudo
+
 class Asteroid {
   constructor(x, y, size = 3) {
     this.x    = x;
@@ -181,6 +189,59 @@ class SpeedBoost {
   }
 }
 
+// ── Shield (escudo protector) ─────────────────────────────────────────────────
+class Shield {
+  constructor(x, y) {
+    this.x      = x;
+    this.y      = y;
+    this.radius = SHIELD_RADIUS;
+    this.ttl    = SHIELD_TTL;
+    this.dead   = false;
+    this.phase  = rand(0, Math.PI * 2);
+  }
+
+  update(dt) {
+    this.ttl -= dt;
+    this.phase += dt * 4;
+    this.y += Math.sin(this.phase) * 12 * dt;
+    if (this.ttl <= 0) this.dead = true;
+  }
+
+  draw() {
+    const blink = Math.floor(this.ttl * 6) % 2 === 0;
+    const alpha = blink && this.ttl < 2 ? 0.4 : 1;
+
+    ctx.save();
+    ctx.translate(this.x, this.y);
+
+    // Brillo exterior
+    ctx.fillStyle = `rgba(${SHIELD_COLOR[0]}, ${SHIELD_COLOR[1]}, ${SHIELD_COLOR[2]}, ${0.22 * alpha})`;
+    ctx.beginPath();
+    ctx.arc(0, 0, this.radius + 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Círculo principal
+    ctx.strokeStyle = `rgba(${SHIELD_COLOR[0]}, ${SHIELD_COLOR[1]}, ${SHIELD_COLOR[2]}, ${alpha})`;
+    ctx.lineWidth   = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Icono de escudo (rombo)
+    ctx.strokeStyle = `rgba(${SHIELD_COLOR[0]}, ${SHIELD_COLOR[1]}, ${SHIELD_COLOR[2]}, ${alpha})`;
+    ctx.lineWidth   = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, -6);
+    ctx.lineTo(5, 0);
+    ctx.lineTo(0, 6);
+    ctx.lineTo(-5, 0);
+    ctx.closePath();
+    ctx.stroke();
+
+    ctx.restore();
+  }
+}
+
 // ── Shooting Star ─────────────────────────────────────────────────────────────
 class ShootingStar {
   constructor(x, y, angle) {
@@ -268,6 +329,7 @@ class Ship {
     this.shootCooldown = 0;
     this.dead          = false;
     this.speedBoostTimer = 0;
+    this.shieldTimer = 0;
   }
 
   update(dt) {
@@ -277,6 +339,10 @@ class Ship {
     if (this.speedBoostTimer > 0) {
       this.speedBoostTimer -= dt;
       if (this.speedBoostTimer < 0) this.speedBoostTimer = 0;
+    }
+    if (this.shieldTimer > 0) {
+      this.shieldTimer -= dt;
+      if (this.shieldTimer < 0) this.shieldTimer = 0;
     }
 
     const ROT     = 3.5;   // rad/s
@@ -341,6 +407,20 @@ class Ship {
       ctx.stroke();
     }
 
+    // Escudo protector
+    if (this.shieldTimer > 0) {
+      const alpha = this.shieldTimer < 2 ? 0.3 + Math.sin(Date.now() * 0.01) * 0.2 : 0.6;
+      ctx.strokeStyle = `rgba(${SHIELD_COLOR[0]}, ${SHIELD_COLOR[1]}, ${SHIELD_COLOR[2]}, ${alpha})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.radius + 8, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      // Brillo interior
+      ctx.fillStyle = `rgba(${SHIELD_COLOR[0]}, ${SHIELD_COLOR[1]}, ${SHIELD_COLOR[2]}, ${alpha * 0.15})`;
+      ctx.fill();
+    }
+
     ctx.restore();
   }
 }
@@ -378,7 +458,7 @@ class Particle {
 }
 
 // ── Estado del juego ──────────────────────────────────────────────────────────
-let ship, bullets, asteroids, particles, speedBoosts, shootingStars;
+let ship, bullets, asteroids, particles, speedBoosts, shields, shootingStars;
 let score, lives, level;
 let state;      // 'playing' | 'dead' | 'gameover'
 let deadTimer;
@@ -400,6 +480,12 @@ function trySpawnSpeedBoost(x, y) {
   if (speedBoosts.length > 0) return;
   if (Math.random() < BOOST_SPAWN_CHANCE)
     speedBoosts.push(new SpeedBoost(x, y));
+}
+
+function trySpawnShield(x, y) {
+  if (shields.length >= SHIELD_MAX) return;
+  if (Math.random() < SHIELD_SPAWN_CHANCE)
+    shields.push(new Shield(x, y));
 }
 
 function spawnShootingStar() {
@@ -435,6 +521,7 @@ function initGame() {
   asteroids = [];
   particles = [];
   speedBoosts = [];
+  shields = [];
   shootingStars = [];
   shootingStarTimer = 0;
   score  = 0;
@@ -449,6 +536,7 @@ function nextLevel() {
   bullets   = [];
   particles = [];
   speedBoosts = [];
+  shields = [];
   shootingStars = [];
   shootingStarTimer = 0;
   ship.reset();
@@ -463,6 +551,7 @@ function killShip() {
   explode(ship.x, ship.y, 14);
   ship.dead = true;
   ship.speedBoostTimer = 0;
+  ship.shieldTimer = 0;
   lives--;
   if (lives <= 0) {
     state = 'gameover';
@@ -490,6 +579,8 @@ function update(dt) {
     shootingStars = shootingStars.filter(s => !s.dead);
     speedBoosts.forEach(b => b.update(dt));
     speedBoosts = speedBoosts.filter(b => !b.dead);
+    shields.forEach(s => s.update(dt));
+    shields = shields.filter(s => !s.dead);
     if (deadTimer <= 0) { state = 'playing'; ship.reset(); }
     return;
   }
@@ -505,10 +596,13 @@ function update(dt) {
   shootingStars.forEach(s => s.update(dt));
   particles.forEach(p => p.update(dt));
   speedBoosts.forEach(b => b.update(dt));
+  shields.forEach(s => s.update(dt));
 
   bullets   = bullets.filter(b => !b.dead);
   shootingStars = shootingStars.filter(s => !s.dead);
   particles = particles.filter(p => !p.dead);
+  speedBoosts = speedBoosts.filter(b => !b.dead);
+  shields = shields.filter(s => !s.dead);
 
   // Spawn de shooting star
   shootingStarTimer += dt;
@@ -528,6 +622,7 @@ function update(dt) {
         score += POINTS[a.size];
         explode(a.x, a.y, a.size * 5);
         trySpawnSpeedBoost(a.x, a.y);
+        trySpawnShield(a.x, a.y);
         newAsteroids.push(...a.split());
       }
     }
@@ -551,21 +646,36 @@ function update(dt) {
   if (ship.invincible <= 0) {
     for (const a of asteroids) {
       if (dist(ship, a) < ship.radius + a.radius * 0.82) {
-        killShip();
+        if (ship.shieldTimer > 0) {
+          a.dead = true;
+          score += Math.floor(POINTS[a.size] * 0.5);
+          explode(a.x, a.y, a.size * 3);
+          newAsteroids.push(...a.split());
+        } else {
+          killShip();
+        }
         break;
       }
     }
   }
+  asteroids = asteroids.filter(a => !a.dead).concat(newAsteroids);
 
   // Nave vs shooting star
   if (ship.invincible <= 0) {
     for (const s of shootingStars) {
       if (!s.dead && dist(ship, s) < ship.radius + s.radius) {
-        killShip();
+        if (ship.shieldTimer > 0) {
+          s.dead = true;
+          score += Math.floor(SHOOTING_STAR_POINTS * 0.5);
+          explode(s.x, s.y, 8);
+        } else {
+          killShip();
+        }
         break;
       }
     }
   }
+  shootingStars = shootingStars.filter(s => !s.dead);
 
   // Nave vs speed boost
   for (const b of speedBoosts) {
@@ -576,6 +686,16 @@ function update(dt) {
     }
   }
   speedBoosts = speedBoosts.filter(b => !b.dead);
+
+  // Nave vs power-up de escudo
+  for (const s of shields) {
+    if (!s.dead && dist(ship, s) < ship.radius + s.radius) {
+      s.dead = true;
+      ship.shieldTimer = SHIELD_DURATION;
+      explode(s.x, s.y, 6);
+    }
+  }
+  shields = shields.filter(s => !s.dead);
 
   // Nivel completado
   if (asteroids.length === 0) nextLevel();
@@ -622,6 +742,19 @@ function drawHUD() {
     ctx.fillRect(x, y, fill, barHeight);
   }
 
+  if (ship.shieldTimer > 0 && !ship.dead) {
+    const barWidth = 100;
+    const barHeight = 6;
+    const x = W / 2 - barWidth / 2;
+    const y = 46;
+    const fill = (ship.shieldTimer / SHIELD_DURATION) * barWidth;
+
+    ctx.strokeStyle = `rgba(${SHIELD_COLOR[0]}, ${SHIELD_COLOR[1]}, ${SHIELD_COLOR[2]}, 0.9)`;
+    ctx.strokeRect(x, y, barWidth, barHeight);
+    ctx.fillStyle = `rgba(${SHIELD_COLOR[0]}, ${SHIELD_COLOR[1]}, ${SHIELD_COLOR[2]}, 0.75)`;
+    ctx.fillRect(x, y, fill, barHeight);
+  }
+
   for (let i = 0; i < lives; i++)
     drawLifeIcon(W - 16 - i * 22, 18);
 
@@ -645,6 +778,7 @@ function draw() {
   asteroids.forEach(a => a.draw());
   shootingStars.forEach(s => s.draw());
   speedBoosts.forEach(b => b.draw());
+  shields.forEach(s => s.draw());
   bullets.forEach(b => b.draw());
   ship.draw();
 
