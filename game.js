@@ -12,7 +12,7 @@ const justPressed = {};
 window.addEventListener('keydown', e => {
   justPressed[e.code] = !keys[e.code];
   keys[e.code] = true;
-  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code))
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Tab'].includes(e.code))
     e.preventDefault();
 });
 window.addEventListener('keyup', e => { keys[e.code] = false; });
@@ -319,29 +319,244 @@ class Ship {
     ctx.lineWidth   = 1.5;
     ctx.lineJoin    = 'round';
 
-    // Silueta clásica: triángulo con muesca trasera
-    ctx.beginPath();
-    ctx.moveTo( 20,  0);   // nariz
-    ctx.lineTo(-12, -9);   // ala izquierda
-    ctx.lineTo( -7,  0);   // muesca trasera
-    ctx.lineTo(-12,  9);   // ala derecha
-    ctx.closePath();
-    ctx.stroke();
-
-    // Llama del propulsor
-    if (this.thrusting && Math.random() > 0.35) {
-      ctx.beginPath();
-      ctx.moveTo(-8, -4);
-      ctx.lineTo(-8 - rand(6, 14), 0);
-      ctx.lineTo(-8,  4);
-      if (this.speedBoostTimer > 0)
-        ctx.strokeStyle = 'rgba(0, 190, 255, 0.9)';
-      else
-        ctx.strokeStyle = 'rgba(255, 130, 0, 0.85)';
-      ctx.stroke();
-    }
+    SKINS[currentSkinIndex].draw(ctx, this);
 
     ctx.restore();
+  }
+}
+
+// ── Skins ───────────────────────────────────────────────────────────────────
+const SKINS = [
+  {
+    id: 'classic',
+    name: 'Clásica',
+    draw(ctx, ship) {
+      ctx.beginPath();
+      ctx.moveTo( 20,  0);
+      ctx.lineTo(-12, -9);
+      ctx.lineTo( -7,  0);
+      ctx.lineTo(-12,  9);
+      ctx.closePath();
+      ctx.stroke();
+      if (ship.thrusting && Math.random() > 0.35) {
+        ctx.beginPath();
+        ctx.moveTo(-8, -4);
+        ctx.lineTo(-8 - rand(6, 14), 0);
+        ctx.lineTo(-8,  4);
+        if (ship.speedBoostTimer > 0)
+          ctx.strokeStyle = 'rgba(0, 190, 255, 0.9)';
+        else
+          ctx.strokeStyle = 'rgba(255, 130, 0, 0.85)';
+        ctx.stroke();
+      }
+    },
+    preview(ctx, x, y, s) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(s, s);
+      ctx.rotate(-Math.PI / 2);
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5 / s;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo( 20,  0);
+      ctx.lineTo(-12, -9);
+      ctx.lineTo( -7,  0);
+      ctx.lineTo(-12,  9);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.restore();
+    }
+  },
+  {
+    id: 'arrow',
+    name: 'Flecha',
+    draw(ctx, ship) {
+      ctx.beginPath();
+      ctx.moveTo( 22,  0);
+      ctx.lineTo( -4, -6);
+      ctx.lineTo( -8, -6);
+      ctx.lineTo( -8,  6);
+      ctx.lineTo( -4,  6);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-3, -6);
+      ctx.lineTo(-3,  6);
+      ctx.stroke();
+      if (ship.thrusting && Math.random() > 0.35) {
+        ctx.beginPath();
+        ctx.moveTo(-9, -3);
+        ctx.lineTo(-9 - rand(6, 14), 0);
+        ctx.lineTo(-9,  3);
+        if (ship.speedBoostTimer > 0)
+          ctx.strokeStyle = 'rgba(0, 255, 255, 0.9)';
+        else
+          ctx.strokeStyle = 'rgba(0, 200, 255, 0.85)';
+        ctx.stroke();
+      }
+    },
+    preview(ctx, x, y, s) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(s, s);
+      ctx.rotate(-Math.PI / 2);
+      ctx.strokeStyle = '#0ff';
+      ctx.lineWidth = 1.5 / s;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo( 22,  0);
+      ctx.lineTo( -4, -6);
+      ctx.lineTo( -8, -6);
+      ctx.lineTo( -8,  6);
+      ctx.lineTo( -4,  6);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-3, -6);
+      ctx.lineTo(-3,  6);
+      ctx.stroke();
+      ctx.restore();
+    }
+  },
+  {
+    id: 'diamond',
+    name: 'Rombo',
+    draw(ctx, ship) {
+      ctx.beginPath();
+      ctx.moveTo( 18,  0);
+      ctx.lineTo(  0, -8);
+      ctx.lineTo(-10,  0);
+      ctx.lineTo(  0,  8);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(  6, -2);
+      ctx.lineTo(  6,  2);
+      ctx.stroke();
+      if (ship.thrusting && Math.random() > 0.35) {
+        ctx.beginPath();
+        ctx.moveTo(-11, -3);
+        ctx.lineTo(-11 - rand(6, 14), 0);
+        ctx.lineTo(-11,  3);
+        if (ship.speedBoostTimer > 0)
+          ctx.strokeStyle = 'rgba(0, 190, 255, 0.9)';
+        else
+          ctx.strokeStyle = 'rgba(255, 215, 0, 0.85)';
+        ctx.stroke();
+      }
+    },
+    preview(ctx, x, y, s) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(s, s);
+      ctx.rotate(-Math.PI / 2);
+      ctx.strokeStyle = '#ffd700';
+      ctx.lineWidth = 1.5 / s;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo( 18,  0);
+      ctx.lineTo(  0, -8);
+      ctx.lineTo(-10,  0);
+      ctx.lineTo(  0,  8);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(  6, -2);
+      ctx.lineTo(  6,  2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  },
+  {
+    id: 'deltawing',
+    name: 'Ala Delta',
+    draw(ctx, ship) {
+      ctx.beginPath();
+      ctx.moveTo( 20,  0);
+      ctx.lineTo( -6, -11);
+      ctx.lineTo(-10, -3);
+      ctx.lineTo(-10,  3);
+      ctx.lineTo( -6,  11);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-10, -3);
+      ctx.lineTo(-10,  3);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo( 2,  0);
+      ctx.lineTo(10, -3);
+      ctx.moveTo( 2,  0);
+      ctx.lineTo(10,  3);
+      ctx.stroke();
+      if (ship.thrusting && Math.random() > 0.35) {
+        ctx.beginPath();
+        ctx.moveTo(-11, -2);
+        ctx.lineTo(-11 - rand(6, 14), 0);
+        ctx.lineTo(-11,  2);
+        if (ship.speedBoostTimer > 0)
+          ctx.strokeStyle = 'rgba(0, 190, 255, 0.9)';
+        else
+          ctx.strokeStyle = 'rgba(255, 60, 60, 0.85)';
+        ctx.stroke();
+      }
+    },
+    preview(ctx, x, y, s) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(s, s);
+      ctx.rotate(-Math.PI / 2);
+      ctx.strokeStyle = '#f44';
+      ctx.lineWidth = 1.5 / s;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo( 20,  0);
+      ctx.lineTo( -6, -11);
+      ctx.lineTo(-10, -3);
+      ctx.lineTo(-10,  3);
+      ctx.lineTo( -6,  11);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-10, -3);
+      ctx.lineTo(-10,  3);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo( 2,  0);
+      ctx.lineTo(10, -3);
+      ctx.moveTo( 2,  0);
+      ctx.lineTo(10,  3);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+];
+
+const SKIN_COLORS = ['#fff', '#0ff', '#ffd700', '#f44'];
+
+let currentSkinIndex = 0;
+let menuSelection = 0;
+let menuStars = [];
+
+function loadSkin() {
+  const saved = localStorage.getItem('selectedSkin');
+  if (saved !== null) {
+    const idx = SKINS.findIndex(s => s.id === saved);
+    if (idx !== -1) currentSkinIndex = idx;
+  }
+  menuSelection = currentSkinIndex;
+}
+
+function saveSkin() {
+  currentSkinIndex = menuSelection;
+  localStorage.setItem('selectedSkin', SKINS[currentSkinIndex].id);
+}
+
+function initMenuStars() {
+  menuStars = [];
+  for (let i = 0; i < 80; i++) {
+    menuStars.push({ x: rand(0, W), y: rand(0, H), r: rand(0.5, 1.5), speed: rand(8, 25) });
   }
 }
 
@@ -444,6 +659,38 @@ function initGame() {
   spawnAsteroids(4);
 }
 
+function initMenu() {
+  ship          = new Ship();
+  bullets   = [];
+  asteroids = [];
+  particles = [];
+  speedBoosts = [];
+  shootingStars = [];
+  shootingStarTimer = 0;
+  score  = 0;
+  lives  = 3;
+  level  = 1;
+  state  = 'menu';
+  initMenuStars();
+  loadSkin();
+}
+
+function updateMenu(dt) {
+  if (pressed('ArrowLeft') || pressed('Tab')) {
+    menuSelection = wrap(menuSelection - 1, SKINS.length);
+  }
+  if (pressed('ArrowRight')) {
+    menuSelection = wrap(menuSelection + 1, SKINS.length);
+  }
+  if (pressed('Enter') || pressed('Space')) {
+    saveSkin();
+    initGame();
+    return;
+  }
+  particles.forEach(p => p.update(dt));
+  particles = particles.filter(p => !p.dead);
+}
+
 function nextLevel() {
   level++;
   bullets   = [];
@@ -474,6 +721,11 @@ function killShip() {
 
 // ── Update ────────────────────────────────────────────────────────────────────
 function update(dt) {
+  if (state === 'menu') {
+    updateMenu(dt);
+    return;
+  }
+
   if (state === 'gameover') {
     if (pressed('Space')) initGame();
     particles.forEach(p => p.update(dt));
@@ -583,20 +835,67 @@ function update(dt) {
 
 // ── Draw ──────────────────────────────────────────────────────────────────────
 function drawLifeIcon(x, y) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(-Math.PI / 2);
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth   = 1.2;
-  ctx.lineJoin    = 'round';
+  SKINS[currentSkinIndex].preview(ctx, x, y, 0.7);
+}
+
+function drawMenu() {
+  // Estrellas de fondo
+  for (const s of menuStars) {
+    s.y += s.speed * 0.016;
+    if (s.y > H) s.y = 0;
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 30px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('SELECCIONA TU NAVE', W / 2, 90);
+
+  const PREVIEW_SCALE = 1.6;
+  const PREVIEW_RADIUS = 34;
+  const spacing = 170;
+  const centerX = W / 2 - spacing * (SKINS.length - 1) / 2;
+  const centerY = H / 2 + 20;
+
+  for (let i = 0; i < SKINS.length; i++) {
+    const px = centerX + i * spacing;
+    const selected = i === menuSelection;
+
+    // Resaltado
+    ctx.save();
+    ctx.strokeStyle = selected ? SKIN_COLORS[i] : 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = selected ? 2 : 1;
+    ctx.beginPath();
+    ctx.arc(px, centerY, PREVIEW_RADIUS, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    // Preview de la nave
+    const bob = selected ? Math.sin(performance.now() / 250) * 0.1 : 0;
+    SKINS[i].preview(ctx, px, centerY + bob, PREVIEW_SCALE);
+
+    // Nombre
+    ctx.fillStyle = selected ? SKIN_COLORS[i] : 'rgba(255,255,255,0.55)';
+    ctx.font = selected ? 'bold 16px monospace' : '14px monospace';
+    ctx.fillText(SKINS[i].name, px, centerY + PREVIEW_RADIUS + 26);
+  }
+
+  // Selector visual
+  const sx = centerX + menuSelection * spacing;
+  ctx.fillStyle = SKIN_COLORS[menuSelection];
   ctx.beginPath();
-  ctx.moveTo( 9,  0);
-  ctx.lineTo(-6, -5);
-  ctx.lineTo(-3,  0);
-  ctx.lineTo(-6,  5);
+  ctx.moveTo(sx, centerY - PREVIEW_RADIUS - 14);
+  ctx.lineTo(sx - 8, centerY - PREVIEW_RADIUS - 26);
+  ctx.lineTo(sx + 8, centerY - PREVIEW_RADIUS - 26);
   ctx.closePath();
-  ctx.stroke();
-  ctx.restore();
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.font = '15px monospace';
+  ctx.fillText('← → SELECCIONAR    ENTER / ESPACIO JUGAR', W / 2, H - 40);
 }
 
 function drawHUD() {
@@ -641,6 +940,11 @@ function draw() {
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, H);
 
+  if (state === 'menu') {
+    drawMenu();
+    return;
+  }
+
   particles.forEach(p => p.draw());
   asteroids.forEach(a => a.draw());
   shootingStars.forEach(s => s.draw());
@@ -665,5 +969,5 @@ function loop(ts) {
   requestAnimationFrame(loop);
 }
 
-initGame();
+initMenu();
 requestAnimationFrame(loop);
